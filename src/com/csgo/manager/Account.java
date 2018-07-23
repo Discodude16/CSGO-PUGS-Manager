@@ -9,7 +9,7 @@ public class Account implements Serializable
 	private static long id;
 	
 	private static String name = "";
-	private static int MMR = 0;
+	private static int MMR = 2500;
 	private static int matchesPlayed = 0;
 	private static int matchesWon = 0;
 	
@@ -28,7 +28,7 @@ public class Account implements Serializable
 		_id = id;
 	}
 	
-	public static int getMMR()
+	public int getMMR()
 	{
 		return MMR;
 	}
@@ -57,7 +57,7 @@ public class Account implements Serializable
 		Account.matchesWon = matchesWon;
 	}
 
-	public static String getName() {
+	public String getName() {
 		return name;
 	}
 
