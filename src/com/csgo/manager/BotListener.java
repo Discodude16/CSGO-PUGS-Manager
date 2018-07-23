@@ -20,13 +20,15 @@ public class BotListener extends ListenerAdapter
 	static Boolean isActive = false;
 	static Boolean inGame = false;
 	static Boolean inTeamCreation = false;
-	
+	static Boolean canStartGame = true;
 	static Boolean waitingMapVeto = false;
 	static Boolean inMapVeto = false;
 	static List<String> maps = new ArrayList<String>();
 	static Account captain1;
 	static Account captain2;
 	static Boolean team1Choosing = true;
+	
+	static Boolean postGame = false;
 	
 	//So This Was supposed to save all the data, only issue was that it didn't save any of the values in the classes, so this is scrapped for now unless anyone can find a better method
 	
@@ -63,6 +65,26 @@ public class BotListener extends ListenerAdapter
 		}
 	}
 	*/
+	
+	public static void endGame()
+	{
+		isActive = false;
+		inGame = false;
+		inTeamCreation = false;
+		canStartGame = true;
+		waitingMapVeto = false;
+		inMapVeto = false;
+		maps.clear();
+		captain1 = null;
+		captain2 = null;
+		team1Choosing = true;
+		
+		postGame = false;
+		
+		team1.clear();
+		team2.clear();
+		players.clear();
+	}
 	
 	public static String getMessageAsString(GuildMessageReceivedEvent e)
 	{
@@ -266,10 +288,139 @@ public class BotListener extends ListenerAdapter
 					sayMessage(e.getChannel(), "That is not a valid map (Make sure the cases match)");
 				}
 			}
-			if (compareMessageRecieved(e, "*endGame"))
+			if (compareMessageRecieved(e, "*endGame") && inGame)
 			{
-				
+				postGame = true;
+				sayMessage(e.getChannel(), "Who Won? (Use *1 or *2)");
 			}
+			if (compareMessageRecieved(e, "*1") && postGame)
+			{
+				sayMessage(e.getChannel(), "Congrats Team 1!");
+				sayMessage(e.getChannel(), "Adjusuting Ranks...");
+				
+				int team1AvregeRank;
+				int team2AvregeRank;
+				
+				int currentMMRAdded1 = 0;
+				int currentMMRAdded2 = 0;
+				
+				List<Integer> team1Ranks = new ArrayList<Integer>();
+				List<Integer> team2Ranks = new ArrayList<Integer>();
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team1Ranks.add(team1.get(i).getMMR());
+					team2Ranks.add(team2.get(i).getMMR());
+				}
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					currentMMRAdded1 = currentMMRAdded1 + team1Ranks.get(i); 
+					currentMMRAdded2 = currentMMRAdded2 + team2Ranks.get(i); 
+				}
+				team1AvregeRank = currentMMRAdded1 / team1Ranks.size();
+				team2AvregeRank = currentMMRAdded2 / team2Ranks.size();
+				
+				int mmrDifference = 0;
+				
+				if (team1AvregeRank > team2AvregeRank)
+				{
+					mmrDifference = team1AvregeRank - team2AvregeRank;
+				}
+				else if (team1AvregeRank < team2AvregeRank)
+				{
+					mmrDifference = team2AvregeRank - team1AvregeRank;
+				}
+				
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team1.get(i).setMMR((team1.get(i).getMMR() + (mmrDifference + 50)));
+					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+					team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
+					team1.get(i).setMatchesWon(team1.get(i).getMatchesWon() + 1);
+				}
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team2.get(i).setMMR((team2.get(i).getMMR() - (mmrDifference - 50)));
+					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+					team2.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+				}
+				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! (Ending Game...)");
+				endGame();
+			}
+			if (compareMessageRecieved(e, "*2") && postGame)
+			{
+				sayMessage(e.getChannel(), "Congrats Team 2!");
+				sayMessage(e.getChannel(), "Adjusuting Ranks...");
+				
+				int team1AvregeRank;
+				int team2AvregeRank;
+				
+				int currentMMRAdded1 = 0;
+				int currentMMRAdded2 = 0;
+				
+				List<Integer> team1Ranks = new ArrayList<Integer>();
+				List<Integer> team2Ranks = new ArrayList<Integer>();
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team1Ranks.add(team1.get(i).getMMR());
+					team2Ranks.add(team2.get(i).getMMR());
+				}
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					currentMMRAdded1 = currentMMRAdded1 + team1Ranks.get(i); 
+					currentMMRAdded2 = currentMMRAdded2 + team2Ranks.get(i); 
+				}
+				team1AvregeRank = currentMMRAdded1 / team1Ranks.size();
+				team2AvregeRank = currentMMRAdded2 / team2Ranks.size();
+				
+				int mmrDifference = 0;
+				
+				if (team1AvregeRank > team2AvregeRank)
+				{
+					mmrDifference = team1AvregeRank - team2AvregeRank;
+				}
+				else if (team1AvregeRank < team2AvregeRank)
+				{
+					mmrDifference = team2AvregeRank - team1AvregeRank;
+				}
+				
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team1.get(i).setMMR((team1.get(i).getMMR() + (mmrDifference - 50)));
+					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+					team2.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+				}
+				for (int i = 0 ; i < team1.size() ; i++)
+				{
+					team2.get(i).setMMR((team2.get(i).getMMR() - (mmrDifference + 50)));
+					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+					team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
+					team2.get(i).setMatchesWon(team2.get(i).getMatchesWon() + 1);
+				}
+				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! (Ending Game...)");
+				endGame();
+			}
+		}
+		if (compareMessageRecieved(e, "*profile"))
+		{
+			Account p = getUserById(e.getAuthor().getIdLong());
+			
+			sayMessage(e.getChannel(), "Player Name: " + p.getName());
+			sayMessage(e.getChannel(), "Player ID: " + p.getId());
+			sayMessage(e.getChannel(), "MMR: " + p.getMMR());
+			sayMessage(e.getChannel(), "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed());
+		}
+		if (compareMessageRecieved(e, "*help"))
+		{
+			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Sent Help to DMS");
+			e.getAuthor().openPrivateChannel().queue((channel) ->
+			{
+				Help h = new Help();
+				String[] helpText = h.help;
+				for (int i = 0 ; i < helpText.length ; i++)
+				{
+					channel.sendMessage(helpText[i]).queue();
+				}
+			});
 		}
 	}
 }

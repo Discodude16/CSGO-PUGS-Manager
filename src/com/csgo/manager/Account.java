@@ -33,26 +33,26 @@ public class Account implements Serializable
 		return MMR;
 	}
 	
-	public static void setMMR(int _MMR)
+	public void setMMR(int _MMR)
 	{
 		MMR = _MMR;
 	}
 	
-	public static int getMatchesPlayed()
+	public int getMatchesPlayed()
 	{
 		return matchesPlayed;
 	}
 	
-	public static void setMatchesPlayed(int _matchesPlayed)
+	public void setMatchesPlayed(int _matchesPlayed)
 	{
 		matchesPlayed = _matchesPlayed;
 	}
 
-	public static int getMatchesWon() {
+	public int getMatchesWon() {
 		return matchesWon;
 	}
 
-	public static void setMatchesWon(int matchesWon) 
+	public void setMatchesWon(int matchesWon) 
 	{
 		Account.matchesWon = matchesWon;
 	}
