@@ -1,3 +1,4 @@
 *.properties
 
 *.classpath
+*.class
