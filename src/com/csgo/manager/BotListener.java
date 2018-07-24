@@ -30,42 +30,6 @@ public class BotListener extends ListenerAdapter
 	
 	static Boolean postGame = false;
 	
-	//So This Was supposed to save all the data, only issue was that it didn't save any of the values in the classes, so this is scrapped for now unless anyone can find a better method
-	
-	/*
-	@SuppressWarnings("unchecked")
-	public static void retrieveUsers()
-	{
-		System.out.println("Retreiving Data...");
-		try {
-			ObjectInputStream oos = new ObjectInputStream(new FileInputStream("Accounts.dat"));
-			try {
-				accounts = (List<Account>) oos.readObject();
-				oos.close();
-				System.out.println("Success! Retrieved " + accounts.size() + " Accounts!");
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
-		} catch (IOException e) {
-			System.out.println("Account File Does Not Exsist!");
-		}
-	}
-	*/
-	
-	/*
-	public static void saveUserData()
-	{
-		try {
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("Accounts.dat"));
-			oos.writeObject(accounts);
-			oos.flush();
-			oos.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	*/
-	
 	public static void endGame()
 	{
 		isActive = false;
@@ -131,7 +95,6 @@ public class BotListener extends ListenerAdapter
 					isActive = true;
 					String username = e.getAuthor().getName();
 					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
-					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Username is " + username);
 					Account ac = new Account(e.getAuthor().getIdLong());
 					ac.setName(e.getAuthor().getName());
 					accounts.add(ac);
@@ -262,12 +225,7 @@ public class BotListener extends ListenerAdapter
 							//Start the Game
 							inMapVeto = false;
 							inGame = true;
-							sayMessage(e.getChannel(), "Setup Is Complete!");
-							sayMessage(e.getChannel(), "------------------");
-							sayMessage(e.getChannel(), "Map Playing: " + maps.get(0));
-							sayMessage(e.getChannel(), "Team 2 Chooses the Side to Start");
-							sayMessage(e.getChannel(), "GLHF!");
-							sayMessage(e.getChannel(), "Type *endgame when the game is finished!");
+							sayMessage(e.getChannel(), "Setup Is Complete! \n ------------------ \n Map Playing: " + maps.get(0) + " \n Team 2 Chooses Which Side To Start On \n Type *endgame when the match is finished. \n GLHF");
 						}
 						else
 						{
@@ -343,7 +301,7 @@ public class BotListener extends ListenerAdapter
 					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
 					team2.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
 				}
-				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! (Ending Game...)");
+				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! \n Ending Game...");
 				endGame();
 			}
 			if (compareMessageRecieved(e, "*2") && postGame)
@@ -396,7 +354,7 @@ public class BotListener extends ListenerAdapter
 					team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
 					team2.get(i).setMatchesWon(team2.get(i).getMatchesWon() + 1);
 				}
-				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! (Ending Game...)");
+				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! \n Ending Game...");
 				endGame();
 			}
 		}
