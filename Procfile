@@ -1,1 +1,1 @@
-worker: java -jar Trump_Bot.jar
+worker: java -jar PUGS.jar
