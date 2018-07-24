@@ -365,11 +365,13 @@ public class BotListener extends ListenerAdapter
 			{
 				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - You are not registered! Register with *register");
 			}
-			
-			sayMessage(e.getChannel(), "Player Name: " + p.getName());
-			sayMessage(e.getChannel(), "Player ID: " + p.getId());
-			sayMessage(e.getChannel(), "MMR: " + p.getMMR());
-			sayMessage(e.getChannel(), "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed());
+			else
+			{
+				sayMessage(e.getChannel(), "Player Name: " + p.getName());
+				sayMessage(e.getChannel(), "Player ID: " + p.getId());
+				sayMessage(e.getChannel(), "MMR: " + p.getMMR());
+				sayMessage(e.getChannel(), "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed());
+			}
 		}
 		if (compareMessageRecieved(e, "*help"))
 		{
