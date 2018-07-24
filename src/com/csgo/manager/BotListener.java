@@ -361,6 +361,10 @@ public class BotListener extends ListenerAdapter
 		if (compareMessageRecieved(e, "*profile"))
 		{
 			Account p = getUserById(e.getAuthor().getIdLong());
+			if (p == null)
+			{
+				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - You are not registered! Register with *register");
+			}
 			
 			sayMessage(e.getChannel(), "Player Name: " + p.getName());
 			sayMessage(e.getChannel(), "Player ID: " + p.getId());
