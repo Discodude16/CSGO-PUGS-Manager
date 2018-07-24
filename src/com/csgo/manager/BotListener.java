@@ -90,20 +90,34 @@ public class BotListener extends ListenerAdapter
 		{
 			if (compareMessageRecieved(e, "*register"))
 			{
-				if (!accounts.contains(getUserById(e.getAuthor().getIdLong())))
+				if (e.getMessage().getMentionedMembers().get(0) == null)
 				{
-					isActive = true;
-					String username = e.getAuthor().getName();
-					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
-					Account ac = new Account(e.getAuthor().getIdLong());
-					ac.setName(e.getAuthor().getName());
-					accounts.add(ac);
-					//saveUserData();
+					if (!accounts.contains(getUserById(e.getAuthor().getIdLong())))
+					{
+						isActive = true;
+						String username = e.getAuthor().getName();
+						sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
+						Account ac = new Account(e.getAuthor().getIdLong());
+						ac.setName(e.getAuthor().getName());
+						accounts.add(ac);
+						//saveUserData();
+					}
+					else
+					{
+						sayMessage(e.getChannel(), "This Account is already Registered!");
+					}
 				}
 				else
 				{
-					sayMessage(e.getChannel(), "This Account is already Registered!");
+					isActive = true;
+					String username = e.getMessage().getMentionedMembers().get(0).getUser().getName();
+					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
+					Account ac = new Account(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong());
+					ac.setName(e.getMessage().getMentionedMembers().get(0).getUser().getName());
+					accounts.add(ac);
+					//saveUserData();
 				}
+				
 			}
 			if (compareMessageRecieved(e, "*startGame"))
 			{
