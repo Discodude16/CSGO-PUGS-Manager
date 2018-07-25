@@ -6,16 +6,16 @@ public class Account implements Serializable
 {
 	private static final long serialVersionUID = 7536482295622776147L;
 
-	private static long id;
+	private long id;
 	
-	private static String name = "";
-	private static int MMR = 2500;
-	private static int matchesPlayed = 0;
-	private static int matchesWon = 0;
+	private String name = "";
+	private int MMR = 2500;
+	private int matchesPlayed = 0;
+	private int matchesWon = 0;
 	
-	public Account(long _id)
+	public Account(long id)
 	{
-		id = _id;
+		this.id = id;
 	}
 	
 	public long getId()
@@ -23,9 +23,9 @@ public class Account implements Serializable
 		return id;
 	}
 	
-	public static void setId(long _id)
+	public void setId(long id)
 	{
-		_id = id;
+		this.id = id;
 	}
 	
 	public int getMMR()
@@ -54,7 +54,7 @@ public class Account implements Serializable
 
 	public void setMatchesWon(int matchesWon) 
 	{
-		Account.matchesWon = matchesWon;
+		this.matchesWon = matchesWon;
 	}
 
 	public String getName() {
@@ -62,6 +62,6 @@ public class Account implements Serializable
 	}
 
 	public void setName(String name) {
-		Account.name = name;
+		this.name = name;
 	}
 }

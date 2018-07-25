@@ -1,5 +1,12 @@
 package com.csgo.manager;
 
+import java.io.EOFException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +36,53 @@ public class BotListener extends ListenerAdapter
 	static Boolean team1Choosing = true;
 	
 	static Boolean postGame = false;
+	
+	public static void retrieveUsers()
+	{
+		FileInputStream fi;
+		try {
+			fi = new FileInputStream("accounts.acc");
+			ObjectInputStream oi = new ObjectInputStream(fi);
+			while (true)
+			{
+				try {
+					accounts.add((Account) oi.readObject());
+				} catch (EOFException exc) {
+					System.out.println("Reached the End of Accounts");
+					break;
+				} catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				}
+			}
+			System.out.println("Finished! Got " + accounts.size() + " Account");
+			oi.close();
+			fi.close();
+		} catch (FileNotFoundException e) {
+			System.out.println("No Accounts File Found!");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void saveUsers()
+	{
+		try {
+			FileOutputStream fo = new FileOutputStream("accounts.acc");
+			ObjectOutputStream oo = new ObjectOutputStream(fo);
+			
+			for (int i = 0 ; i < accounts.size() ; i++)
+			{
+				oo.writeObject(accounts.get(i));
+			}
+			oo.close();
+			fo.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
 	
 	public static void endGame()
 	{
@@ -90,34 +144,22 @@ public class BotListener extends ListenerAdapter
 		{
 			if (compareMessageRecieved(e, "*register"))
 			{
-				if (e.getMessage().getMentionedMembers().get(0) == null)
+				if (e.getMessage().getMentionedMembers().size() == 0)
 				{
 					if (!accounts.contains(getUserById(e.getAuthor().getIdLong())))
 					{
 						isActive = true;
-						String username = e.getAuthor().getName();
 						sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
 						Account ac = new Account(e.getAuthor().getIdLong());
 						ac.setName(e.getAuthor().getName());
 						accounts.add(ac);
-						//saveUserData();
+						saveUsers();
 					}
 					else
 					{
 						sayMessage(e.getChannel(), "This Account is already Registered!");
 					}
-				}
-				else
-				{
-					isActive = true;
-					String username = e.getMessage().getMentionedMembers().get(0).getUser().getName();
-					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Your Account Has Been Created!");
-					Account ac = new Account(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong());
-					ac.setName(e.getMessage().getMentionedMembers().get(0).getUser().getName());
-					accounts.add(ac);
-					//saveUserData();
-				}
-				
+				}	
 			}
 			if (compareMessageRecieved(e, "*startGame"))
 			{
@@ -128,7 +170,7 @@ public class BotListener extends ListenerAdapter
 					sayMessage(e.getChannel(), "To Add A Player, Mention Them. Only Add 1 Player At A Time");
 				}
 			}
-			if (inTeamCreation && e.getMessage().getMentionedMembers().get(0) != null)
+			if (inTeamCreation && e.getMessage().getMentionedMembers().size() != 0)
 			{
 				if (players.contains(getUserById(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong())))
 				{

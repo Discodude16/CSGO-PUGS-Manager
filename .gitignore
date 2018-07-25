@@ -1,4 +1,6 @@
+/com/
 *.properties
 
 *.classpath
 *.class
+*.acc

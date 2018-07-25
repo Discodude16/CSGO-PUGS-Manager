@@ -41,6 +41,7 @@ public class Main {
 	public static void main(String[] args) {
 		try {
 			jda = new JDABuilder(AccountType.BOT).addEventListener(new BotListener()).setToken(getToken()).buildBlocking();
+			BotListener.retrieveUsers();
 		} catch (LoginException | InterruptedException e) {
 			e.printStackTrace();
 		}
