@@ -11,6 +11,7 @@ import javax.security.auth.login.LoginException;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
+import net.dv8tion.jda.core.entities.Game;
 
 public class Main {
 
@@ -41,6 +42,8 @@ public class Main {
 	public static void main(String[] args) {
 		try {
 			jda = new JDABuilder(AccountType.BOT).addEventListener(new BotListener()).setToken(getToken()).buildBlocking();
+			Game g = Game.playing("Try *Help");
+			jda.getPresence().setGame(g);
 			BotListener.retrieveUsers();
 		} catch (LoginException | InterruptedException e) {
 			e.printStackTrace();

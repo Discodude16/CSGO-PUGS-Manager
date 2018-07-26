@@ -41,7 +41,7 @@ public class BotListener extends ListenerAdapter
 	{
 		FileInputStream fi;
 		try {
-			fi = new FileInputStream("accounts.acc");
+			fi = new FileInputStream("accounts.txt");
 			ObjectInputStream oi = new ObjectInputStream(fi);
 			while (true)
 			{
@@ -57,6 +57,7 @@ public class BotListener extends ListenerAdapter
 			System.out.println("Finished! Got " + accounts.size() + " Account");
 			oi.close();
 			fi.close();
+			endGame();
 		} catch (FileNotFoundException e) {
 			System.out.println("No Accounts File Found!");
 		} catch (IOException e) {
@@ -67,7 +68,7 @@ public class BotListener extends ListenerAdapter
 	public static void saveUsers()
 	{
 		try {
-			FileOutputStream fo = new FileOutputStream("accounts.acc");
+			FileOutputStream fo = new FileOutputStream("accounts.txt");
 			ObjectOutputStream oo = new ObjectOutputStream(fo);
 			
 			for (int i = 0 ; i < accounts.size() ; i++)
@@ -92,16 +93,17 @@ public class BotListener extends ListenerAdapter
 		canStartGame = true;
 		waitingMapVeto = false;
 		inMapVeto = false;
-		maps.clear();
 		captain1 = null;
 		captain2 = null;
 		team1Choosing = true;
-		
 		postGame = false;
 		
+		maps.clear();
 		team1.clear();
 		team2.clear();
 		players.clear();
+		
+		saveUsers();
 	}
 	
 	public static String getMessageAsString(GuildMessageReceivedEvent e)
@@ -137,6 +139,25 @@ public class BotListener extends ListenerAdapter
 		mc.sendMessage(text).queue();
 	}
 	
+	public void adjustMatchesPlayed()
+	{
+		for (int i = 0 ; i < team1.size() ; i++)
+		{
+			team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+			team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
+		}
+	}
+	
+	public Boolean hasGamemasterRank(GuildMessageReceivedEvent e)
+	{
+		List<String> roles = new ArrayList<>();
+		for (int i = 0 ; i < e.getMember().getRoles().size() ; i++)
+		{
+			roles.add(e.getMember().getRoles().get(i).getName());
+		}
+		return roles.contains("Gamemaster");
+	}
+	
 	@Override
 	public void onGuildMessageReceived(GuildMessageReceivedEvent e)
 	{
@@ -161,13 +182,12 @@ public class BotListener extends ListenerAdapter
 					}
 				}	
 			}
-			if (compareMessageRecieved(e, "*startGame"))
+			if (compareMessageRecieved(e, "*startGame") && hasGamemasterRank(e))
 			{
 				if (!inGame && !inTeamCreation)
 				{
 					inTeamCreation = true;
-					sayMessage(e.getChannel(), "Please Begin Entering Team 1.");
-					sayMessage(e.getChannel(), "To Add A Player, Mention Them. Only Add 1 Player At A Time");
+					sayMessage(e.getChannel(), "Please Begin Entering Team Players. \n To Add A Player, Mention Them. Only Add 1 Player At A Time");
 				}
 			}
 			if (inTeamCreation && e.getMessage().getMentionedMembers().size() != 0)
@@ -193,39 +213,39 @@ public class BotListener extends ListenerAdapter
 							inTeamCreation = false;
 						
 							//Make List of All Players in Rank Order
-							List<Account> a = new ArrayList<>();
-							List<Account> allAccounts = accounts;
+							List<Account> p = new ArrayList<>();
+							List<Account> allPlayers = players;
 							int currentHighestMMR = 0;
 							Account currentHighest;
 							for (int i = 1 ; i <= 10 ; i++)
 							{
 								currentHighestMMR = 0;
 								currentHighest = null;
-								for (int j = 0 ; j < allAccounts.size() ; j++)
+								for (int j = 0 ; j < allPlayers.size() ; j++)
 								{
-									if (allAccounts.get(j).getMMR() >= currentHighestMMR)
+									if (allPlayers.get(j).getMMR() >= currentHighestMMR)
 									{
-										currentHighestMMR = allAccounts.get(j).getMMR();
-										currentHighest = allAccounts.get(j);
+										currentHighestMMR = allPlayers.get(j).getMMR();
+										currentHighest = allPlayers.get(j);
 									}
 								}
-								allAccounts.remove(currentHighest);
-								a.add(i - 1, currentHighest);
+								allPlayers.remove(currentHighest);
+								p.add(i - 1, currentHighest);
 							}
 							
 							//Make Teams From List
 							
-							team1.add(0, a.get(0));
-							team1.add(1, a.get(2));
-							team1.add(2, a.get(4));
-							team1.add(3, a.get(6));
-							team1.add(4, a.get(8));
+							team1.add(0, p.get(0));
+							team1.add(1, p.get(2));
+							team1.add(2, p.get(4));
+							team1.add(3, p.get(6));
+							team1.add(4, p.get(8));
 							
-							team2.add(0, a.get(1));
-							team2.add(1, a.get(3));
-							team2.add(2, a.get(5));
-							team2.add(3, a.get(7));
-							team2.add(4, a.get(9));
+							team2.add(0, p.get(1));
+							team2.add(1, p.get(3));
+							team2.add(2, p.get(5));
+							team2.add(3, p.get(7));
+							team2.add(4, p.get(9));
 							
 							sayMessage(e.getChannel(), "Teams Have Been Generated!");
 							sayMessage(e.getChannel(), "Team 1 - ");
@@ -239,7 +259,7 @@ public class BotListener extends ListenerAdapter
 							{
 								sayMessage(e.getChannel(), team2.get(i).getName());
 							}
-							sayMessage(e.getChannel(), "Please Move to Appropriate Channels. Type *veto to start the map veto!");
+							sayMessage(e.getChannel(), "------------------------------ \n Please Move to Appropriate Channels. Type *veto to start the map veto!");
 							waitingMapVeto = true;
 					}
 				}
@@ -281,7 +301,11 @@ public class BotListener extends ListenerAdapter
 							//Start the Game
 							inMapVeto = false;
 							inGame = true;
-							sayMessage(e.getChannel(), "Setup Is Complete! \n ------------------ \n Map Playing: " + maps.get(0) + " \n Team 2 Chooses Which Side To Start On \n Type *endgame when the match is finished. \n GLHF");
+							String mapPlaying = maps.get(0);
+							StringBuilder sb = new StringBuilder(mapPlaying);
+							sb.deleteCharAt(0);
+							mapPlaying = sb.toString();
+							sayMessage(e.getChannel(), "Setup Is Complete! \n ------------------ \n Map Playing: " + mapPlaying + " \n Team 2 Chooses Which Side To Start On \n Type *endgame when the match is finished. \n GLHF");
 						}
 						else
 						{
@@ -302,12 +326,12 @@ public class BotListener extends ListenerAdapter
 					sayMessage(e.getChannel(), "That is not a valid map (Make sure the cases match)");
 				}
 			}
-			if (compareMessageRecieved(e, "*endGame") && inGame)
+			if (compareMessageRecieved(e, "*endGame") && inGame && hasGamemasterRank(e))
 			{
 				postGame = true;
 				sayMessage(e.getChannel(), "Who Won? (Use *1 or *2)");
 			}
-			if (compareMessageRecieved(e, "*1") && postGame)
+			if (compareMessageRecieved(e, "*1") && postGame && hasGamemasterRank(e))
 			{
 				sayMessage(e.getChannel(), "Congrats Team 1!");
 				sayMessage(e.getChannel(), "Adjusuting Ranks...");
@@ -347,20 +371,17 @@ public class BotListener extends ListenerAdapter
 				for (int i = 0 ; i < team1.size() ; i++)
 				{
 					team1.get(i).setMMR((team1.get(i).getMMR() + (mmrDifference + 50)));
-					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
-					team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
 					team1.get(i).setMatchesWon(team1.get(i).getMatchesWon() + 1);
 				}
 				for (int i = 0 ; i < team1.size() ; i++)
 				{
 					team2.get(i).setMMR((team2.get(i).getMMR() - (mmrDifference - 50)));
-					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
-					team2.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
 				}
 				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! \n Ending Game...");
+				adjustMatchesPlayed();
 				endGame();
 			}
-			if (compareMessageRecieved(e, "*2") && postGame)
+			if (compareMessageRecieved(e, "*2") && postGame && hasGamemasterRank(e))
 			{
 				sayMessage(e.getChannel(), "Congrats Team 2!");
 				sayMessage(e.getChannel(), "Adjusuting Ranks...");
@@ -399,18 +420,17 @@ public class BotListener extends ListenerAdapter
 				
 				for (int i = 0 ; i < team1.size() ; i++)
 				{
-					team1.get(i).setMMR((team1.get(i).getMMR() + (mmrDifference - 50)));
-					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
-					team2.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
+					//Team 1 Lost Here
+					team1.get(i).setMMR((team1.get(i).getMMR() - (mmrDifference + 50)));
 				}
 				for (int i = 0 ; i < team1.size() ; i++)
 				{
-					team2.get(i).setMMR((team2.get(i).getMMR() - (mmrDifference + 50)));
-					team1.get(i).setMatchesPlayed(team1.get(i).getMatchesPlayed() + 1);
-					team2.get(i).setMatchesPlayed(team2.get(i).getMatchesPlayed() + 1);
+					//Team 2 Won Here
+					team2.get(i).setMMR((team2.get(i).getMMR() + (mmrDifference + 50)));
 					team2.get(i).setMatchesWon(team2.get(i).getMatchesWon() + 1);
 				}
 				sayMessage(e.getChannel(), "Ranks Have Been Adjusted! GG! \n Ending Game...");
+				adjustMatchesPlayed();
 				endGame();
 			}
 		}
