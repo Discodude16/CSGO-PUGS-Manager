@@ -35,7 +35,16 @@ public class BotListener extends ListenerAdapter
 	static Account captain2;
 	static Boolean team1Choosing = true;
 	
+	static Boolean reportingResults = false;
+	static Boolean onevoneActive = false;
+	static Boolean playerChallenging = false;
+	static String playerBeingChallenged;
+	static Boolean inonevoneGame = false;
+	static Account player1;
+	static Account player2;
 	static Boolean postGame = false;
+	
+	static Boolean isItemCancellable = false;
 	
 	public static void retrieveUsers()
 	{
@@ -104,6 +113,18 @@ public class BotListener extends ListenerAdapter
 		players.clear();
 		
 		saveUsers();
+	}
+	
+	public static void resetonevone()
+	{
+		reportingResults = false;
+		onevoneActive = false;
+		playerChallenging = false;
+		playerBeingChallenged = "";
+		inonevoneGame = false;
+		player1 = null;
+		player2 = null;
+		postGame = false;
 	}
 	
 	public static String getMessageAsString(GuildMessageReceivedEvent e)
@@ -184,9 +205,10 @@ public class BotListener extends ListenerAdapter
 			}
 			if (compareMessageRecieved(e, "*startGame") && hasGamemasterRank(e))
 			{
-				if (!inGame && !inTeamCreation)
+				if (!inGame && !inTeamCreation && !inonevoneGame)
 				{
 					inTeamCreation = true;
+					isItemCancellable = true;
 					sayMessage(e.getChannel(), "Please Begin Entering Team Players. \n To Add A Player, Mention Them. Only Add 1 Player At A Time");
 				}
 			}
@@ -267,6 +289,7 @@ public class BotListener extends ListenerAdapter
 			}
 			if (compareMessageRecieved(e, "*veto") && waitingMapVeto)
 			{
+				isItemCancellable = false;
 				captain1 = team1.get(0);
 				captain2 = team2.get(0);
 				
@@ -436,17 +459,27 @@ public class BotListener extends ListenerAdapter
 		}
 		if (compareMessageRecieved(e, "*profile"))
 		{
-			Account p = getUserById(e.getAuthor().getIdLong());
+			Account p = null;
+			if (e.getMessage().getMentionedMembers().size() >= 1)
+			{
+				p = getUserById(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong());
+			}
+			else
+			{
+				p = getUserById(e.getAuthor().getIdLong());
+			}
+			
 			if (p == null)
 			{
 				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - You are not registered! Register with *register");
 			}
 			else
 			{
-				sayMessage(e.getChannel(), "Player Name: " + p.getName());
-				sayMessage(e.getChannel(), "Player ID: " + p.getId());
-				sayMessage(e.getChannel(), "MMR: " + p.getMMR());
-				sayMessage(e.getChannel(), "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed());
+				sayMessage(e.getChannel(), "Player Name: " + p.getName() + "\n" + "Player ID: " + p.getId() + 
+						"\n" + "MMR: " + p.getMMR() + 
+						"\n" + "One V One MMR: " + p.getSingleMMR() + 
+						"\n" + "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed() + 
+						"\n" + "One V One Matches Won: " + p.getOnevoneWon() + " / " + p.getOnevonePlayed());
 			}
 		}
 		if (compareMessageRecieved(e, "*help"))
@@ -462,5 +495,96 @@ public class BotListener extends ListenerAdapter
 				}
 			});
 		}
+		if (compareMessageRecieved(e, "*1v1") && !onevoneActive)
+		{
+			isItemCancellable = true;
+			onevoneActive = true;
+			player1 = getUserById(e.getAuthor().getIdLong());
+			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " Who do you want to challenge? \n Mention Them To Challenge");
+		}
+		if (e.getMessage().getMentionedMembers().size() == 1 && onevoneActive && !playerChallenging && !inonevoneGame && !e.getAuthor().isBot() && getUserById(e.getAuthor().getIdLong()) == player1) //Challenges A Specific Player
+		{
+			isItemCancellable = true;
+			playerChallenging = true;
+			playerBeingChallenged = e.getMessage().getMentionedMembers().get(0).getAsMention();
+			sayMessage(e.getChannel(), playerBeingChallenged + " - Do You Accept This Challenge? (Respond with *Yes or *No");
+		}
+		if (compareMessageRecieved(e, "*Yes") && playerChallenging && e.getMessage().getAuthor().getAsMention().equals(playerBeingChallenged))
+		{
+			isItemCancellable = false;
+			player2 = getUserById(e.getAuthor().getIdLong());
+			playerChallenging = false;
+			playerBeingChallenged = null;
+			inonevoneGame = true;
+			sayMessage(e.getChannel(), "The Game Has Started \n" + player1.getName() + " vs " + player2.getName() + " \n Game goes to first to ten rounds \n GLHF \n Type *endround to end the game");
+		}
+		if (compareMessageRecieved(e, "*No") && playerChallenging && e.getMessage().getAuthor().getAsMention().equals(playerBeingChallenged))
+		{
+			isItemCancellable = false;
+			sayMessage(e.getChannel(), "Challenge Denied! F");
+		}
+		if (compareMessageRecieved(e, "*endround"))
+		{
+			reportingResults = true;
+			sayMessage(e.getChannel(), "Who Won? Please Mention The User Who Won the Game");
+		}
+		if (e.getMessage().getMentionedMembers().size() == 1 && onevoneActive && !playerChallenging && inonevoneGame && reportingResults)
+		{
+			Account winner = null;
+			Account loser = null;
+			if (player1.getId() == e.getMessage().getMentionedMembers().get(0).getUser().getIdLong())
+			{
+				winner = player1;
+				loser = player2;
+			}
+			else
+			{
+				winner = player2;
+				loser = player1;
+			}
+			sayMessage(e.getChannel(), "Congrats " + winner.getName());
+			
+			//Get MMR To Change
+			int mmrToChange;
+			
+			//Calc the difference
+			System.out.println("Winner - " + winner.getSingleMMR() + "Loser - " + loser.getSingleMMR());
+			if (winner.getSingleMMR() <= loser.getSingleMMR())
+			{
+				System.out.println("Using Winner - Loser MMR");
+				mmrToChange = loser.getSingleMMR() - winner.getSingleMMR();
+				mmrToChange = mmrToChange / 4;
+				if (mmrToChange <= 25)
+				{
+					mmrToChange = 25;
+				}
+			}
+			else
+			{
+				System.out.println("Using Loser - Winner MMR");
+				mmrToChange = Math.abs(loser.getSingleMMR() - winner.getSingleMMR());
+				if (mmrToChange > 100)
+				{
+					mmrToChange = 25;
+				}
+			}
+			
+			winner.setSingleMMR(winner.getSingleMMR() + mmrToChange);
+			winner.setOnevoneWon(winner.getOnevoneWon() + 1);
+			winner.setOnevonePlayed(winner.getOnevonePlayed() + 1);
+			loser.setSingleMMR(loser.getSingleMMR() - mmrToChange);
+			loser.setOnevonePlayed(loser.getOnevonePlayed() + 1);
+			sayMessage(e.getChannel(), "Game Over. MMR Has Been Adjusted by " + mmrToChange + " MMR. Profiles Have Been Saved!");
+			saveUsers();
+			resetonevone();
+		}
+		if (compareMessageRecieved(e, "*Cancel") && isItemCancellable)
+		{
+			sayMessage(e.getChannel(), "Cancelled Event");
+			resetonevone();
+			endGame();
+			isItemCancellable = false;
+		}
+		
 	}
 }

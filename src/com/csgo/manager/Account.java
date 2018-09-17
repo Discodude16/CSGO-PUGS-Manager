@@ -12,6 +12,9 @@ public class Account implements Serializable
 	private int MMR = 2500;
 	private int matchesPlayed = 0;
 	private int matchesWon = 0;
+	private int singleMMR = 2500;
+	private int onevonePlayed = 0;
+	private int onevoneWon = 0;
 	
 	public Account(long id)
 	{
@@ -63,5 +66,29 @@ public class Account implements Serializable
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public int getSingleMMR() {
+		return singleMMR;
+	}
+
+	public void setSingleMMR(int singleMMR) {
+		this.singleMMR = singleMMR;
+	}
+
+	public int getOnevonePlayed() {
+		return onevonePlayed;
+	}
+
+	public void setOnevonePlayed(int onevonePlayed) {
+		this.onevonePlayed = onevonePlayed;
+	}
+
+	public int getOnevoneWon() {
+		return onevoneWon;
+	}
+
+	public void setOnevoneWon(int onevoneWon) {
+		this.onevoneWon = onevoneWon;
 	}
 }
