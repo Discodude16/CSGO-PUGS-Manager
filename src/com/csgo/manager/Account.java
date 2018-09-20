@@ -15,6 +15,7 @@ public class Account implements Serializable
 	private int singleMMR = 2500;
 	private int onevonePlayed = 0;
 	private int onevoneWon = 0;
+	private boolean allowChallenging = true;
 	
 	public Account(long id)
 	{
@@ -90,5 +91,13 @@ public class Account implements Serializable
 
 	public void setOnevoneWon(int onevoneWon) {
 		this.onevoneWon = onevoneWon;
+	}
+	
+	public boolean allowChallenging() {
+		return allowChallenging;
+	}
+	
+	public void setallowChallenigng(boolean allow) {
+		this.allowChallenging = allow;
 	}
 }

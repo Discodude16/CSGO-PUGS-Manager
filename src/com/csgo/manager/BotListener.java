@@ -9,8 +9,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 import net.dv8tion.jda.core.entities.MessageChannel;
+import net.dv8tion.jda.core.entities.User;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 
@@ -134,19 +136,15 @@ public class BotListener extends ListenerAdapter
 	
 	public static Account getUserById(long id)
 	{
-		System.out.println("Checking For " + id + " | Size is " + accounts.size());
 		Account acc = null;
 		for (int i = 0 ; i < accounts.size() ; i++)
 		{
-			System.out.println("Current ID Checking - " + accounts.get(i).getId());
 			if (accounts.get(i).getId() == id)
 			{
-				System.out.println("Account Found!");
 				acc = accounts.get(i);
 				return acc;
 			}
 		}
-		System.out.println("Returning Null for Some Reason");
 		return null;
 	}
 	
@@ -457,31 +455,6 @@ public class BotListener extends ListenerAdapter
 				endGame();
 			}
 		}
-		if (compareMessageRecieved(e, "*profile"))
-		{
-			Account p = null;
-			if (e.getMessage().getMentionedMembers().size() >= 1)
-			{
-				p = getUserById(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong());
-			}
-			else
-			{
-				p = getUserById(e.getAuthor().getIdLong());
-			}
-			
-			if (p == null)
-			{
-				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - You are not registered! Register with *register");
-			}
-			else
-			{
-				sayMessage(e.getChannel(), "Player Name: " + p.getName() + "\n" + "Player ID: " + p.getId() + 
-						"\n" + "MMR: " + p.getMMR() + 
-						"\n" + "One V One MMR: " + p.getSingleMMR() + 
-						"\n" + "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed() + 
-						"\n" + "One V One Matches Won: " + p.getOnevoneWon() + " / " + p.getOnevonePlayed());
-			}
-		}
 		if (compareMessageRecieved(e, "*help"))
 		{
 			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Sent Help to DMS");
@@ -500,7 +473,7 @@ public class BotListener extends ListenerAdapter
 			isItemCancellable = true;
 			onevoneActive = true;
 			player1 = getUserById(e.getAuthor().getIdLong());
-			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " Who do you want to challenge? \n Mention Them To Challenge");
+			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " Who do you want to challenge? \n Mention Them To Challenge or use *Random to Challenge a Random Online Player");
 		}
 		if (e.getMessage().getMentionedMembers().size() == 1 && onevoneActive && !playerChallenging && !inonevoneGame && !e.getAuthor().isBot() && getUserById(e.getAuthor().getIdLong()) == player1) //Challenges A Specific Player
 		{
@@ -585,6 +558,148 @@ public class BotListener extends ListenerAdapter
 			endGame();
 			isItemCancellable = false;
 		}
-		
+		if (compareMessageRecieved(e, "*Toggle 1v1"))
+		{
+			Account accountInFocus = getUserById(e.getAuthor().getIdLong());
+			if (accountInFocus.allowChallenging())
+			{
+				accountInFocus.setallowChallenigng(false);
+				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Allow Challenging Has Been Disabled.");
+			}
+			else
+			{
+				accountInFocus.setallowChallenigng(true);
+				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Allow Challenging Has Been Enabled.");
+			}
+		}
+		/*
+		if (compareMessageRecieved(e, "*Random") && onevoneActive && !playerChallenging && !inonevoneGame && !e.getAuthor().isBot() && getUserById(e.getAuthor().getIdLong()) == player1)
+		{
+			sayMessage(e.getChannel(), "Searching For Players...");
+			List<Account> allAccounts = new ArrayList<>(); //All Online Accounts
+			List<Account> potentialOpponents = new ArrayList<>(); //All Potential Opponents
+			
+			int challengersMMR = getUserById(e.getAuthor().getIdLong()).getSingleMMR(); //MMR Of the player
+			
+			//Gets All Online Users
+			for(int i = 0 ; i < accounts.size() ; i++)
+			{
+				if (e.getChannel().getMembers().get(i).getOnlineStatus().toString().equals("ONLINE") && e.getChannel().getMembers().get(i) != e.getAuthor() && e.getChannel().getMembers().get(i) != null)
+				{
+					System.out.println("Found An Online Player");
+					allAccounts.add(getUserById(e.getChannel().getMembers().get(i).getUser().getIdLong()));
+				}
+			}
+			System.out.println("Finished Searching For Online Players, Found - " + allAccounts.size());
+			//Fill Potential Accounts
+			potentialOpponents = allAccounts;
+			System.out.println("Potential Opponents List Filled! Size Is - " + potentialOpponents.size());
+			//Checks All MMR and Removes Uneven Accounts
+			int maxMMRDifference = 25;
+			for (int j = 0 ; j < 3 ; j++)
+			{
+				System.out.println("Checking MMR with " + maxMMRDifference);
+				for(int i = 0 ; i < potentialOpponents.size() ; i++)
+				{
+					Account challengedPlayer = potentialOpponents.get(i);
+					System.out.println("Checking Player " + challengedPlayer.getSingleMMR());
+					int challengedMMR = challengedPlayer.getSingleMMR();
+					int mmrDifference; //Difference Between MMR
+					
+					//Calculate MMR Difference
+					if (challengedMMR > challengersMMR)
+					{
+						mmrDifference = challengedMMR - challengersMMR;
+					}
+					else
+					{
+						mmrDifference = challengersMMR - challengedMMR;
+					}
+					
+					if (mmrDifference > maxMMRDifference) //25 is the Max MMR Difference To Be Considered For A Match
+					{
+						potentialOpponents.remove(i);
+						System.out.println("Removing Player Due to To High MMR Difference");
+					}
+				}
+				
+				if (potentialOpponents.size() > 0) 
+				{
+					System.out.println("Have Potential List of Players, Breaking");
+					break;
+				}
+				
+				if (maxMMRDifference == 75)
+				{
+					sayMessage(e.getChannel(), "No Potential Opponents Found Within Your Skill Range!");
+					break;
+				}
+				System.out.println("No Players Found, Trying Again");
+				maxMMRDifference = maxMMRDifference + 25;
+			}
+			
+			if (potentialOpponents.size() > 0)
+			{
+				//Has 4 Potential Opponents
+				Account player = potentialOpponents.get(ThreadLocalRandom.current().nextInt(0, potentialOpponents.size() + 1));
+				
+				//Finds the User With The Same ID and Messages Them
+				for (int i = 0 ; i < allAccounts.size() ; i++)
+				{
+					User currentUserTesting;
+					currentUserTesting = e.getChannel().getMembers().get(i).getUser();
+					if (currentUserTesting.getIdLong() == player.getId())
+					{
+						currentUserTesting.openPrivateChannel().queue((channel) -> 
+						{
+							channel.sendMessage(e.getAuthor().getName() + " Has Challenged You To a 1v1. Go to the PUG Discord and Type *Yes To Accept, or *No To Deny.");
+							isItemCancellable = true;
+							playerChallenging = true;
+							playerBeingChallenged = currentUserTesting.getAsMention();
+						});
+						break;
+					}
+				}
+			}
+			else
+			{
+				sayMessage(e.getChannel(), "Not Enough People Online To Challenge Random Players!");
+			}
+		}
+		*/
+		if (e.getMessage().getContentRaw().charAt(0) == '*' && e.getMessage().getContentRaw().substring(0, 8).equalsIgnoreCase("*profile"))
+		{
+			Boolean usingMentionedAccount = false;
+			Account p = null;
+			if (e.getMessage().getMentionedMembers().size() >= 1)
+			{
+				p = getUserById(e.getMessage().getMentionedMembers().get(0).getUser().getIdLong());
+				usingMentionedAccount = true;
+			}
+			else
+			{
+				p = getUserById(e.getAuthor().getIdLong());
+			}
+			
+			if (p == null)
+			{
+				if (usingMentionedAccount)
+				{
+					sayMessage(e.getChannel(), "This User Is Not Registered.");
+				}
+				else
+				{
+					sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - You are not registered! Register with *register");
+				}
+			}
+			else
+			{
+				sayMessage(e.getChannel(), "Player Name: " + p.getName() + "\n" + "Player ID: " + p.getId() + 
+						"\n" + "MMR: " + p.getMMR() + 
+						"\n" + "One V One MMR: " + p.getSingleMMR() + 
+						"\n" + "Matches Won: " + p.getMatchesWon() + " / " + p.getMatchesPlayed() + 
+						"\n" + "One V One Matches Won: " + p.getOnevoneWon() + " / " + p.getOnevonePlayed());
+			}
+		}
 	}
 }
