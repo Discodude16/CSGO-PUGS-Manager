@@ -9,7 +9,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.User;
@@ -47,6 +49,8 @@ public class BotListener extends ListenerAdapter
 	static Boolean postGame = false;
 	
 	static Boolean isItemCancellable = false;
+	
+	static Timer timer = new Timer();
 	
 	public static void retrieveUsers()
 	{
@@ -175,6 +179,13 @@ public class BotListener extends ListenerAdapter
 			roles.add(e.getMember().getRoles().get(i).getName());
 		}
 		return roles.contains("Gamemaster");
+	}
+	
+	public TimerTask cancelChallenge(GuildMessageReceivedEvent e) 
+	{
+		sayMessage(e.getChannel(), "The Player Did Not Accept In Time! Match Cancelled!");
+		resetonevone();
+		return null;
 	}
 	
 	@Override
@@ -470,10 +481,17 @@ public class BotListener extends ListenerAdapter
 		}
 		if (compareMessageRecieved(e, "*1v1") && !onevoneActive)
 		{
-			isItemCancellable = true;
-			onevoneActive = true;
-			player1 = getUserById(e.getAuthor().getIdLong());
-			sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " Who do you want to challenge? \n Mention Them To Challenge or use *Random to Challenge a Random Online Player");
+			if (getUserById(e.getAuthor().getIdLong()) != null)
+			{
+				isItemCancellable = true;
+				onevoneActive = true;
+				player1 = getUserById(e.getAuthor().getIdLong());
+				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " Who do you want to challenge? \n Mention Them To Challenge or use *Random to Challenge a Random Online Player");
+			}
+			else
+			{
+				sayMessage(e.getChannel(), "You Need To Register In Order To Challenge Someone!");
+			}
 		}
 		if (e.getMessage().getMentionedMembers().size() == 1 && onevoneActive && !playerChallenging && !inonevoneGame && !e.getAuthor().isBot() && getUserById(e.getAuthor().getIdLong()) == player1) //Challenges A Specific Player
 		{
@@ -481,9 +499,18 @@ public class BotListener extends ListenerAdapter
 			playerChallenging = true;
 			playerBeingChallenged = e.getMessage().getMentionedMembers().get(0).getAsMention();
 			sayMessage(e.getChannel(), playerBeingChallenged + " - Do You Accept This Challenge? (Respond with *Yes or *No");
+			timer.schedule(new TimerTask(){
+				@Override
+				public void run() {
+					resetonevone();
+					sayMessage(e.getChannel(), "Player Didn't Respont in Time. Match Cancelled");
+				}
+			}, 10000);
+			
 		}
 		if (compareMessageRecieved(e, "*Yes") && playerChallenging && e.getMessage().getAuthor().getAsMention().equals(playerBeingChallenged))
 		{
+			timer.cancel();
 			isItemCancellable = false;
 			player2 = getUserById(e.getAuthor().getIdLong());
 			playerChallenging = false;
@@ -493,8 +520,10 @@ public class BotListener extends ListenerAdapter
 		}
 		if (compareMessageRecieved(e, "*No") && playerChallenging && e.getMessage().getAuthor().getAsMention().equals(playerBeingChallenged))
 		{
+			timer.cancel();
 			isItemCancellable = false;
 			sayMessage(e.getChannel(), "Challenge Denied! F");
+			resetonevone();
 		}
 		if (compareMessageRecieved(e, "*endround"))
 		{
@@ -553,6 +582,7 @@ public class BotListener extends ListenerAdapter
 		}
 		if (compareMessageRecieved(e, "*Cancel") && isItemCancellable)
 		{
+			timer.cancel();
 			sayMessage(e.getChannel(), "Cancelled Event");
 			resetonevone();
 			endGame();
@@ -565,14 +595,16 @@ public class BotListener extends ListenerAdapter
 			{
 				accountInFocus.setallowChallenigng(false);
 				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Allow Challenging Has Been Disabled.");
+				saveUsers();
 			}
 			else
 			{
 				accountInFocus.setallowChallenigng(true);
 				sayMessage(e.getChannel(), e.getAuthor().getAsMention() + " - Allow Challenging Has Been Enabled.");
+				saveUsers();
 			}
 		}
-		/*
+		
 		if (compareMessageRecieved(e, "*Random") && onevoneActive && !playerChallenging && !inonevoneGame && !e.getAuthor().isBot() && getUserById(e.getAuthor().getIdLong()) == player1)
 		{
 			sayMessage(e.getChannel(), "Searching For Players...");
@@ -586,8 +618,11 @@ public class BotListener extends ListenerAdapter
 			{
 				if (e.getChannel().getMembers().get(i).getOnlineStatus().toString().equals("ONLINE") && e.getChannel().getMembers().get(i) != e.getAuthor() && e.getChannel().getMembers().get(i) != null)
 				{
-					System.out.println("Found An Online Player");
-					allAccounts.add(getUserById(e.getChannel().getMembers().get(i).getUser().getIdLong()));
+					if (getUserById(e.getChannel().getMembers().get(i).getUser().getIdLong()) != null && getUserById(e.getChannel().getMembers().get(i).getUser().getIdLong()).allowChallenging())
+					{
+						System.out.println("Found An Online Player");
+						allAccounts.add(getUserById(e.getChannel().getMembers().get(i).getUser().getIdLong()));
+					}
 				}
 			}
 			System.out.println("Finished Searching For Online Players, Found - " + allAccounts.size());
@@ -632,17 +667,23 @@ public class BotListener extends ListenerAdapter
 				if (maxMMRDifference == 75)
 				{
 					sayMessage(e.getChannel(), "No Potential Opponents Found Within Your Skill Range!");
+					resetonevone();
 					break;
 				}
 				System.out.println("No Players Found, Trying Again");
 				maxMMRDifference = maxMMRDifference + 25;
 			}
 			
+			System.out.println("Players Have Been Determined.");
 			if (potentialOpponents.size() > 0)
 			{
+				System.out.println("Getting Random Player...");
 				//Has 4 Potential Opponents
-				Account player = potentialOpponents.get(ThreadLocalRandom.current().nextInt(0, potentialOpponents.size() + 1));
-				
+				Random r = new Random();
+				int randomNumber = r.nextInt(potentialOpponents.size());
+				System.out.println(randomNumber);
+				Account player = potentialOpponents.get(randomNumber);
+				System.out.println("Found It!");
 				//Finds the User With The Same ID and Messages Them
 				for (int i = 0 ; i < allAccounts.size() ; i++)
 				{
@@ -650,9 +691,11 @@ public class BotListener extends ListenerAdapter
 					currentUserTesting = e.getChannel().getMembers().get(i).getUser();
 					if (currentUserTesting.getIdLong() == player.getId())
 					{
+						System.out.println("Found The User That We Were Trying To Reach!");
+						sayMessage(e.getChannel() , "Found Player! " + currentUserTesting.getAsMention() + " - Sent a Message To There DMS \n They have 2 minutes to accept");
 						currentUserTesting.openPrivateChannel().queue((channel) -> 
 						{
-							channel.sendMessage(e.getAuthor().getName() + " Has Challenged You To a 1v1. Go to the PUG Discord and Type *Yes To Accept, or *No To Deny.");
+							channel.sendMessage(e.getAuthor().getName() + " Has Challenged You To a 1v1. Go to the PUG Discord and Type *Yes To Accept, or *No To Deny.").queue();
 							isItemCancellable = true;
 							playerChallenging = true;
 							playerBeingChallenged = currentUserTesting.getAsMention();
@@ -666,8 +709,8 @@ public class BotListener extends ListenerAdapter
 				sayMessage(e.getChannel(), "Not Enough People Online To Challenge Random Players!");
 			}
 		}
-		*/
-		if (e.getMessage().getContentRaw().charAt(0) == '*' && e.getMessage().getContentRaw().substring(0, 8).equalsIgnoreCase("*profile"))
+		
+		if (e.getMessage().getContentRaw().charAt(0) == '*' && e.getMessage().getContentRaw().charAt(1) == 'p' && e.getMessage().getContentRaw().charAt(2) == 'r' && e.getMessage().getContentRaw().charAt(3) == 'o')
 		{
 			Boolean usingMentionedAccount = false;
 			Account p = null;
